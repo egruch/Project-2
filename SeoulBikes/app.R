@@ -9,6 +9,8 @@
 
 library(shiny)
 
+#bike <- read.csv("SeoulBikeData.csv")
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
@@ -43,12 +45,36 @@ ui <- fluidPage(
             uiOutput("slider2"),
 
             actionButton("subset_data","Update Data!")
+        
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
           tabsetPanel(
-            tabPanel("About", "content",
+            tabPanel("About", 
+                     tags$p("This app allows users to explore a data set about rental bike in Seoul
+                           South Korea. The use can create sub sets of the data, download said data
+                           and learn meaningful insights through graphical numerical summaries."),
+                     
+                     tags$p(
+                       "You can check out the data's Kaggle link ",
+                       tags$a("here", href = "https://www.kaggle.com/datasets/saurabhshahane/seoul
+                              -bike-sharing-demand-prediction?resource=download")
+                     ), 
+                     "The data was originally put together for V E, Sathishkumar (2020), Seoul
+                     Bike Sharing Demand Prediction paper. The counts of rental bikes per hour comes
+                     from the South Korea website named SEOUL OPEN DATA PLAZA. This data set spans
+                     from December 2017 to November 2018 (365 days). The variables to describe
+                     climate conditions comes from Korea Meteorological Administration",
+                     
+                     "The sidebar allows the user to subset two categroical variables, Season and
+                     Holiday, and to subset any of the numeric variables but only two at a time. The
+                     data will not be subseted until the 'Update Data!' button is clicked. In the
+                     Data Download tab, the user can see a snipet of data they have subetted and
+                     then click the action button at the bottom of the page to download the data as
+                     a CSV. Finally, the data exploration tab allows the user to see graphical and
+                     numerical summaries of their subsetted data. This will include contingency
+                     tables, bar charts, scatter plots, and summary statistics."
                      fluidRow(
                      column(6,imageOutput("bikeimage")),
                      column(6,imageOutput("seoulimage"))
@@ -79,7 +105,7 @@ server <- function(input, output, session) {
   
   output$seoulimage <- renderImage( 
     { 
-      list(src = "south-korea.jpg", height = "25%") 
+      list(src = "south-korea.jpg", height = "50%") 
     }, 
     deleteFile = FALSE 
   )
@@ -120,9 +146,9 @@ server <- function(input, output, session) {
   
   
   output$slider1 <- renderUI({
-    validate(
-      need(input$num1 != "", "Please select a variable.")
-    )
+    # validate(
+    #   need(input$num1 != "", "Please select a variable.")
+    # )
     selected_column1 <- bike[[input$num1]]
     
     sliderInput("num_range1",
