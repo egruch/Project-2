@@ -50,6 +50,14 @@ table(bike$Seasons, bike$Holiday)/24
 
 table(bike$precipitation)
 ```
+Bar chart
+```{r}
+ggplot(bike, aes(x=Seasons, fill= precipitation )) + 
+  geom_bar(position = "dodge" ) +
+  labs(title = "Counts of Seasons Between Precipitation")
+  #scale_fill_hue(c = 40) +
+  #theme(legend.position="none")
+```
 
 
 

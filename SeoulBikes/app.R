@@ -9,6 +9,7 @@
 
 library(shiny)
 library(janitor)
+library(plotly)
 
 #bike <- read.csv("SeoulBikeData.csv")
 
@@ -62,20 +63,21 @@ ui <- fluidPage(
                        tags$a("here", href = "https://www.kaggle.com/datasets/saurabhshahane/seoul
                               -bike-sharing-demand-prediction?resource=download")
                      ), 
-                     "The data was originally put together for V E, Sathishkumar (2020), Seoul
+                     
+                     tags$p("The data was originally put together for V E, Sathishkumar (2020), Seoul
                      Bike Sharing Demand Prediction paper. The counts of rental bikes per hour comes
                      from the South Korea website named SEOUL OPEN DATA PLAZA. This data set spans
                      from December 2017 to November 2018 (365 days). The variables to describe
-                     climate conditions comes from Korea Meteorological Administration",
+                     climate conditions comes from Korea Meteorological Administration"),
                      
-                     "The sidebar allows the user to subset two categroical variables, Season and
+                     tags$p("The sidebar allows the user to subset two categroical variables, Season and
                      Holiday, and to subset any of the numeric variables but only two at a time. The
                      data will not be subseted until the 'Update Data!' button is clicked. In the
                      Data Download tab, the user can see a snipet of data they have subetted and
                      then click the action button at the bottom of the page to download the data as
                      a CSV. Finally, the data exploration tab allows the user to see graphical and
                      numerical summaries of their subsetted data. This will include contingency
-                     tables, bar charts, scatter plots, and summary statistics.",
+                     tables, bar charts, scatter plots, and summary statistics."),
                      fluidRow(
                      column(6,imageOutput("bikeimage")),
                      column(6,imageOutput("seoulimage"))
@@ -86,27 +88,61 @@ ui <- fluidPage(
                      downloadButton('downloadData', 'Download the data!')
                      ),
             tabPanel("Data Exploration", 
-                     h2("Categorical Data Summaries"),
-                     h3("Contingency Table"),
+                     h2("Data Exploration"),
                      "Recall each observation of this data is 1 hour accoss 365 days.",
+                     h3("Categorical Data Summaries"),
+                     #h3("Contingency Table"),
                      fluidRow(
                        column(6,
-                              selectInput('cont_var1', "Select First Categorical Variable",
+                              selectInput('cont_var1', "Select 1st Categorical Variable",
                                           choices = c("Seasons", "Holiday", "Functioning.Day",
-                                                         "precipitation"))
-                              ),
-                       column(6,
-                              selectInput('cont_var2', "Select Second Categorical Variable 
-                                          (Optional)",
-                                          choices = c("None","Seasons", "Holiday", "Functioning.Day"
-                                                      ,"precipitation"), selected = "None"),
-                       
+                                                      "precipitation"))
                        ),
-                       column(6, tableOutput("table1"))
+                       column(6,
+                              selectInput('cont_var2', "Select 2nd Categorical Variable (Optional)",
+                                          choices = c("None","Seasons", "Holiday", "Functioning.Day"
+                                                      ,"precipitation"), selected = "None")
+                              
+                       )
+                     ),
+                     fluidRow(
+                       column(6, tableOutput("table1")),
+                       column(6, plotOutput("barchart"))
                      ),
                      h2("Numerical Data Summaries"),
+                     h3("Summary Statistics"),
+                     tableOutput("table2"),
                      h3("Scatter Plots"),
-                     h3("Bike Counts Over Time")
+                     fluidRow(
+                       column(4, 
+                              selectInput('x_var', 'X Variable', 
+                                          c("bike_count", "hour", "temp", "humidity",
+                                            "wind_speed", "rainfall", "snowfall", "visibility",
+                                            "dew_point_temp", "solar_radiation")
+                                          )
+                              ),
+                       column(4,
+                              selectInput('y_var', 'Y Variable', 
+                                          c("bike_count", "hour", "temp", "humidity",
+                                            "wind_speed", "rainfall", "snowfall", "visibility",
+                                            "dew_point_temp", "solar_radiation")
+                                          )
+                              ),
+                       column(4,
+                              selectInput("g_var", "Grouping Variable",
+                                          choices = c("None","Seasons", "Holiday", "Functioning.Day"
+                                                      ,"precipitation")
+                              ))
+                     ),
+                     plotOutput("scatter"),
+                     h3("Bike Counts Over Time"),
+                     fluidRow(
+                       column(6, selectInput("facet_var","Choose Grouping Variable",
+                                              choices = c("None","Seasons", "Holiday", "Functioning.Day"
+                                                          ,"precipitation")
+                       ))
+                     ),
+                     plotlyOutput("smooth")
                      )
           )
            #plotOutput("distPlot")
@@ -261,6 +297,65 @@ server <- function(input, output, session) {
        }
           
      )
+     
+     output$barchart <- renderPlot({
+       if(input$cont_var2 == "None"){
+         ggplot(data$bike_subset, aes_string(x= input$cont_var1 )) + 
+           geom_bar() +
+           labs(title = paste("Counts of ", input$cont_var1))
+       }
+       else {
+         ggplot(data$bike_subset, aes_string(x=input$cont_var1, 
+                                      fill= input$cont_var2 )) + 
+           geom_bar(position = "dodge" ) +
+           labs(title = paste("Counts of ", input$cont_var1, " Between ", input$cont_var2))
+           #scale_fill_hue(c = 40) +
+           
+       }
+     })
+     
+     output$scatter <- renderPlot({
+       
+       validate(
+         need(input$x_var != input$y_var, "Please select two different variables.")
+       )
+       
+        if (input$g_var == "None") {
+          ggplot(data = data$bike_subset, aes_string(x = input$x_var, y = input$y_var)) +
+            geom_jitter() +
+            labs(x = input$x_var, y = input$y_var,
+                 title = paste(input$x_var," v.s.", input$y_var))
+        }
+        else {
+          ggplot(data = data$bike_subset, aes_string(x = input$x_var, y = input$y_var, 
+                                                     color = input$g_var)) +
+            geom_jitter() +
+            labs(x = input$x_var, y = input$y_var,
+                 title = paste(input$x_var," v.s.", input$y_var))
+        }
+     })
+     
+     output$smooth <- renderPlotly({
+       if(input$facet_var == "None"){
+        g <- ggplot(data = data$bike_subset, aes(x = hour, y = bike_count)) +
+        geom_smooth() +
+         labs(x = "Hour", y = "Number of Bikes Rented",
+              title = "Number of Bikes Rented Across Each Hour") +
+         scale_x_continuous(breaks = seq(0, 23, 1))
+        
+        ggplotly(g, tooltip = c("x", "y"))
+       }
+       else {
+         g <- ggplot(data = data$bike_subset, aes(x = hour, y = bike_count)) +
+           geom_smooth() + 
+           facet_wrap(~ get(input$facet_var)) +
+           labs(x = "Hour", y = "Number of Bikes Rented",
+                title = "Number of Bikes Rented Across Each Hour") +
+           scale_x_continuous(breaks = seq(0, 23, 1))
+         
+         ggplotly(g, tooltip = c("x", "y"))
+       }
+     })
     
 }
 
