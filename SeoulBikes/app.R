@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(janitor)
 
 #bike <- read.csv("SeoulBikeData.csv")
 
@@ -74,7 +75,7 @@ ui <- fluidPage(
                      then click the action button at the bottom of the page to download the data as
                      a CSV. Finally, the data exploration tab allows the user to see graphical and
                      numerical summaries of their subsetted data. This will include contingency
-                     tables, bar charts, scatter plots, and summary statistics."
+                     tables, bar charts, scatter plots, and summary statistics.",
                      fluidRow(
                      column(6,imageOutput("bikeimage")),
                      column(6,imageOutput("seoulimage"))
@@ -84,7 +85,29 @@ ui <- fluidPage(
                      DT::dataTableOutput("data_set"),
                      downloadButton('downloadData', 'Download the data!')
                      ),
-            tabPanel("Data Exploration", "content")
+            tabPanel("Data Exploration", 
+                     h2("Categorical Data Summaries"),
+                     h3("Contingency Table"),
+                     "Recall each observation of this data is 1 hour accoss 365 days.",
+                     fluidRow(
+                       column(6,
+                              selectInput('cont_var1', "Select First Categorical Variable",
+                                          choices = c("Seasons", "Holiday", "Functioning.Day",
+                                                         "precipitation"))
+                              ),
+                       column(6,
+                              selectInput('cont_var2', "Select Second Categorical Variable 
+                                          (Optional)",
+                                          choices = c("None","Seasons", "Holiday", "Functioning.Day"
+                                                      ,"precipitation"), selected = "None"),
+                       
+                       ),
+                       column(6, tableOutput("table1"))
+                     ),
+                     h2("Numerical Data Summaries"),
+                     h3("Scatter Plots"),
+                     h3("Bike Counts Over Time")
+                     )
           )
            #plotOutput("distPlot")
         )
@@ -212,7 +235,6 @@ server <- function(input, output, session) {
   }
   )
 
-
      output$data_set <- DT::renderDataTable(data$bike_subset)
       
      output$downloadData <- downloadHandler(
@@ -224,6 +246,20 @@ server <- function(input, output, session) {
          # write csv
          write.csv(data$bike_subset, file, row.names = FALSE)
        }
+     )
+     
+     output$table1 <- renderTable(
+       if(input$cont_var2 == "None"){
+         #table(get(input$cont_var1, data$bike_subset))
+         data$bike_subset |>
+           tabyl(!!sym(input$cont_var1))
+       }
+       else {
+         #table(get(input$cont_var1, data$bike_subset), get(input$cont_var2, data$bike_subset))
+         data$bike_subset |>
+           tabyl(!!sym(input$cont_var1), !!sym(input$cont_var2))
+       }
+          
      )
     
 }
