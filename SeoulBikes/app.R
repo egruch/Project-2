@@ -10,8 +10,26 @@
 library(shiny)
 library(janitor)
 library(plotly)
+library(ggcorrplot)
+library(tidyverse)
 
-#bike <- read.csv("SeoulBikeData.csv")
+bike <- read.csv("SeoulBikeData.csv")
+
+bike <- bike |>
+  rename("date" = "Date",
+         "bike_count" = "Rented.Bike.Count",
+         "hour" = "Hour",
+         "temp" = "Temperature.C.",
+         "humidity" = "Humidity...",
+         "wind_speed" = "Wind.speed..m.s.",
+         "visibility" = "Visibility..10m.",
+         "dew_point_temp" = "Dew.point.temperature.C.",
+         "solar_radiation" = "Solar.Radiation..MJ.m2.",
+         "rainfall" = "Rainfall.mm.",
+         "snowfall" = "Snowfall..cm.") |>
+  mutate(date = as.Date(date, format = "%m/%d/%Y"),
+         precipitation = ifelse(rainfall == 0 & snowfall == 0, 
+                                "no precipitation", "precipitation"))
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -90,7 +108,9 @@ ui <- fluidPage(
             tabPanel("Data Exploration", 
                      h2("Data Exploration"),
                      "Recall each observation of this data is 1 hour accoss 365 days.",
-                     h3("Categorical Data Summaries"),
+                     tabsetPanel( 
+                     tabPanel(
+                     "Categorical Data Summaries",
                      #h3("Contingency Table"),
                      fluidRow(
                        column(6,
@@ -108,11 +128,28 @@ ui <- fluidPage(
                      fluidRow(
                        column(6, tableOutput("table1")),
                        column(6, plotOutput("barchart"))
+                     )
                      ),
-                     h2("Numerical Data Summaries"),
+                     tabPanel(
+                     "Numerical Data Summaries",
                      h3("Summary Statistics"),
+                     fluidRow(
+                       column(4,
+                              selectInput("sum_var", 'Choose Variable to Summarize', 
+                                          c("bike_count", "hour", "temp", "humidity",
+                                            "wind_speed", "rainfall", "snowfall", "visibility",
+                                            "dew_point_temp", "solar_radiation")
+                              )
+                       ),
+                       column(4,
+                              selectInput("cat_var", "Grouping Variable",
+                                          choices = c("None","Seasons", "Holiday", "Functioning.Day"
+                                                      ,"precipitation")
+                              ))
+                     ),
                      tableOutput("table2"),
                      h3("Scatter Plots"),
+                     
                      fluidRow(
                        column(4, 
                               selectInput('x_var', 'X Variable', 
@@ -142,8 +179,14 @@ ui <- fluidPage(
                                                           ,"precipitation")
                        ))
                      ),
-                     plotlyOutput("smooth")
+                     shinycssloaders::withSpinner(
+                       plotlyOutput("smooth")
+                     ),
+                     h3("Correlation"),
+                     plotOutput("correlationMatrix")
                      )
+                     )
+          )
           )
            #plotOutput("distPlot")
         )
@@ -293,7 +336,8 @@ server <- function(input, output, session) {
        else {
          #table(get(input$cont_var1, data$bike_subset), get(input$cont_var2, data$bike_subset))
          data$bike_subset |>
-           tabyl(!!sym(input$cont_var1), !!sym(input$cont_var2))
+           tabyl(!!sym(input$cont_var1), !!sym(input$cont_var2)) |>
+           adorn_rounding(digits = 1)
        }
           
      )
@@ -314,6 +358,45 @@ server <- function(input, output, session) {
        }
      })
      
+     # sum_table1 <- reactive({
+     #   req(input$cat_var == "None")
+     #   data$bike_subet |>
+     #           summarise(Mean = mean(!!sym(input$sum_var)),
+     #                     Median = median(!!sym(input$sum_var))
+     #           )
+     # 
+     # })
+     # sum_table2 <- reactive({
+     #   req(input$cat_var != "None")
+     #   data$bike_subet |>
+     #     group_by(!!sym(input$cat_var)) |>
+     #     summarise(Mean = mean(!!sym(input$sum_var)),
+     #               Median = median(!!sym(input$sum_var))
+     #     )
+     # 
+     # })
+       sum_table <- reactive({
+       req(input$sum_var)
+       if (input$cat_var == "None"){
+         data$bike_subset |>
+           summarise(Mean = mean(!!sym(input$sum_var)),
+                     Median = median(!!sym(input$sum_var))
+           )
+       }
+       else {
+         data$bike_subset |>
+           group_by(!!sym(input$cat_var)) |>
+           summarise(Mean = mean(!!sym(input$sum_var)),
+                     Median = median(!!sym(input$sum_var))
+           )
+       }
+
+     })
+     
+     output$table2 <- renderTable({
+       sum_table()
+     })
+     
      output$scatter <- renderPlot({
        
        validate(
@@ -331,7 +414,7 @@ server <- function(input, output, session) {
                                                      color = input$g_var)) +
             geom_jitter() +
             labs(x = input$x_var, y = input$y_var,
-                 title = paste(input$x_var," v.s.", input$y_var))
+                 title = paste(input$x_var," v.s.", input$y_var, " Across ", input$g_var))
         }
      })
      
@@ -356,6 +439,13 @@ server <- function(input, output, session) {
          ggplotly(g, tooltip = c("x", "y"))
        }
      })
+     
+     output$correlationMatrix <- renderPlot({
+       corr <- cor(data$bike_subset |> 
+                     select(-c(date, Seasons, Holiday, Functioning.Day, precipitation)))
+       ggcorrplot(corr, title = "Correlation Matrix",lab = TRUE, lab_size = 2)
+     })
+       
     
 }
 

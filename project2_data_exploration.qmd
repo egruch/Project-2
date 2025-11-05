@@ -178,9 +178,39 @@ g + geom_jitter() +
 ```
 
 ```{r}
-bike |>
-  select(rainfall, snowfall) |>
-  mutate(precipitation = ifelse(rainfall < 0 & snowfall == 0, 
-                                "no precipitation", "precipitation"))
+library(gapminder)
+library(gganimate)
+library(gifski)
+
+g <- ggplot(bike, aes(x = hour, y = bike_count)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  #scale_colour_manual(values = Seasons) +
+  scale_size(range = c(2, 12)) +
+  #facet_wrap(~ Seasons) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Date: {frame_time}', x = 'Hour', y = 'Bike Rental Count') +
+  transition_time(date) +
+  enter_fade() + exit_shrink() +
+      ease_aes('sine-in-out')
+  #ease_aes('linear')
+```
+
+```{r}
+anim <- ggplot(mtcars, aes(mpg, disp)) +
+  geom_point(aes(color = gear)) +
+  transition_states(gear, transition_length = 2, state_length = 1) +
+  enter_fade() +
+  exit_fade()
+
+animate(anim)
+```
+
+```{r}
+# Loading
+library(ggcorrplot)
+corr <- cor(bike |> select(-c(date, Seasons, Holiday, Functioning.Day, precipitation)))
+head(corr)
+
+ggcorrplot(corr, title = "Correlation Matrix",lab = TRUE, lab_size = 2)
 ```
 
