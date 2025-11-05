@@ -1,0 +1,10 @@
+name: project-2
+title:
+username: egruchacz
+account: egruchacz
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15980325
+bundleId: 11137142
+url: https://egruchacz.shinyapps.io/project-2/
+version: 1

@@ -53,13 +53,13 @@ ui <- fluidPage(
             selectInput('num1', 'Select First Numeric variable', 
                         c("bike_count", "hour", "temp", "humidity",
                           "wind_speed", "rainfall", "snowfall", "visibility",
-                          "dew_point_temp", "solar_radiation"), 
-                        selectize=FALSE),
+                          "dew_point_temp", "solar_radiation") 
+                        ),
             selectInput('num2', 'Select Second Numeric variable', 
                         c("bike_count", "hour", "temp", "humidity",
                           "wind_speed", "rainfall", "snowfall", "visibility",
                           "dew_point_temp", "solar_radiation"), 
-                        selectize=FALSE),
+                        selected = "temp"),
       
             uiOutput("slider1"),
             uiOutput("slider2"),
@@ -148,8 +148,19 @@ ui <- fluidPage(
                               ))
                      ),
                      tableOutput("table2"),
+                     h3("Bike Counts Over Time"),
+                     "This data was created to investigate demand of bike rental across time and depending on differnt weather conditions. The user should use the grouping variable option to see how demand changes across categorical variables. Additionaly, the user should use the side bar to see how the demand changes when you subset on a variable.",
+                     fluidRow(
+                       column(6, selectInput("facet_var","Choose Grouping Variable",
+                                             choices = c("None","Seasons", "Holiday", "Functioning.Day"
+                                                         ,"precipitation")
+                       ))
+                     ),
+                     shinycssloaders::withSpinner(
+                       plotlyOutput("smooth")
+                     ),
                      h3("Scatter Plots"),
-                     
+                     "Here the user can investigate the relationship between two variables of their choosing along with a grouping variable if desired.",
                      fluidRow(
                        column(4, 
                               selectInput('x_var', 'X Variable', 
@@ -172,16 +183,7 @@ ui <- fluidPage(
                               ))
                      ),
                      plotOutput("scatter"),
-                     h3("Bike Counts Over Time"),
-                     fluidRow(
-                       column(6, selectInput("facet_var","Choose Grouping Variable",
-                                              choices = c("None","Seasons", "Holiday", "Functioning.Day"
-                                                          ,"precipitation")
-                       ))
-                     ),
-                     shinycssloaders::withSpinner(
-                       plotlyOutput("smooth")
-                     ),
+                     
                      h3("Correlation"),
                      plotOutput("correlationMatrix")
                      )
@@ -327,7 +329,12 @@ server <- function(input, output, session) {
        }
      )
      
-     output$table1 <- renderTable(
+     output$table1 <- renderTable({
+       
+       validate(
+         need(input$cont_var1 != input$cont_var2, "Please select two different variables.")
+       )
+       
        if(input$cont_var2 == "None"){
          #table(get(input$cont_var1, data$bike_subset))
          data$bike_subset |>
@@ -340,7 +347,7 @@ server <- function(input, output, session) {
            adorn_rounding(digits = 1)
        }
           
-     )
+     })
      
      output$barchart <- renderPlot({
        if(input$cont_var2 == "None"){
@@ -380,14 +387,18 @@ server <- function(input, output, session) {
        if (input$cat_var == "None"){
          data$bike_subset |>
            summarise(Mean = mean(!!sym(input$sum_var)),
-                     Median = median(!!sym(input$sum_var))
+                     Median = median(!!sym(input$sum_var)),
+                     SD = sd(!!sym(input$sum_var))
+                                     
            )
        }
        else {
          data$bike_subset |>
            group_by(!!sym(input$cat_var)) |>
            summarise(Mean = mean(!!sym(input$sum_var)),
-                     Median = median(!!sym(input$sum_var))
+                     Median = median(!!sym(input$sum_var)),
+                     SD = sd(!!sym(input$sum_var))                 
+                                     
            )
        }
 

@@ -1,2 +1,3 @@
 # Project-2
-ST558 Project 2, create an rshiny app to explore data
+By Ella Gruchacz
+ST558 Project 2, create an rshiny app to explore data of the Seoul Bike data set. This project includes a qmd file that does static data exploration of the data. Some but not all of the data summaries produced in that file will be included in the rshiny app. The rshiny app gives the user the opporunity to learn about the data and explore the data  dynamically. The user can subset the data across all parts of the app using the side bar. Additionally, the user can view and download the data/subsetted data. Finally, the user can choose to create categorical and numeric summaries of the bike data.
