@@ -3,17 +3,21 @@ title: "Bike Data Exploration"
 format: html
 editor: visual
 ---
+Static Data Exploration for Project 2
+Ella Gruchacz
 
+Read in libraries
 ```{r}
 library(tidyverse)
 library(ggpointdensity)
 ```
 
-
+Read in Data
 ```{r}
 bike <- read.csv("SeoulBikeData.csv")
 ```
 
+Rename columns, make date a date format, add categorical varaible of precipitation.
 ```{r}
 bike <- bike |>
   rename("date" = "Date",
@@ -32,25 +36,27 @@ bike <- bike |>
                                 "no precipitation", "precipitation"))
 ```
 
+### Contingency Tables
 
+Counts per season
 ```{r}
 table(bike$Seasons)
 ```
-
+Counts (per day) per Holiday
 ```{r}
 table(bike$Holiday)/24
 ```
+Two way contingency table of Seasons and Holidays (per day)
 ```{r}
 table(bike$Seasons, bike$Holiday)/24
 ```
+
+One way contingency table: counts of precipitation
 ```{r}
-
-#bike |> 
-#  filter(rainfall > 0 | snowfall > 0)
-
 table(bike$precipitation)
 ```
-Bar chart
+
+Bar chart of Counts of Seasons Between Precipitation
 ```{r}
 ggplot(bike, aes(x=Seasons, fill= precipitation )) + 
   geom_bar(position = "dodge" ) +
@@ -59,14 +65,16 @@ ggplot(bike, aes(x=Seasons, fill= precipitation )) +
   #theme(legend.position="none")
 ```
 
+### Nuerical Summaries
 
-
+Mean and Median of bike rental count
 ```{r}
 bike |> 
   summarize(mean_bike_rent = mean(bike_count), 
             med_bike_rent = median(bike_count))
 ```
 
+Mean, Median, and Standard Deviation of  bike rental count
 ```{r}
 bike |>
   group_by(Seasons) |>
@@ -76,7 +84,7 @@ bike |>
 
 ```
 
-
+Smoothed Conditional Mean graph of number of bikes rented across each hour. Displays information on demand of bike rentals across a day.
 
 ```{r}
 g <- ggplot(data = bike, aes(x = hour, y = bike_count))
@@ -86,12 +94,14 @@ g + geom_smooth() +
   scale_x_continuous(breaks = seq(0, 23, 1))
 ```
 
+Data set of mean number of bikes rented per hour
 ```{r}
 bike_mean_per_hour <- bike |>
   group_by(hour)|>
   summarize(mean_rented = mean(bike_count))
 ```
 
+Plot data set made above, gives the same message as geo_smooth(), not as pretty
 ```{r}
 g <- ggplot(data = bike_mean_per_hour, 
             aes(x = hour, y = mean_rented))
@@ -100,17 +110,15 @@ g + geom_line() +
   title = "Average Number of Bikes Rented Across Each Hour")
 ```
 
+Point density plot for number of bikes across each hour. Not the best use of this type of plot since x variable is discrete.
 ```{r}
 g <- ggplot(data = bike, aes(x = hour, y = bike_count))
-g + geom_pointdensity() +
+g + geom_pointdensity(adjust = 4) +
   labs(x = "Hour", y = "Number of Bikes Rented",
   title = "Number of Bikes Rented Across Each Hour")
 ```
-```{r}
 
-```
-
-
+Using faceting to investigate bike rental demand across differnt seasons
 ```{r}
 g <- ggplot(data = bike, aes(x = hour, y = bike_count))
 g + geom_smooth() +
@@ -118,21 +126,22 @@ g + geom_smooth() +
   labs(x = "Hour", y = "Number of Bikes Rented",
   title = "Number of Bikes Rented Across the Day Per Season")
 ```
+Histogram of visibility. Very left skewed, most of the data around 2000 (10m).
 ```{r}
 g <- ggplot(data = bike, aes(x = visibility))
 g + geom_histogram(alpha = 0.5, bins = 15) +
   labs(x = "Visibility", y = "Count",
-  title = "Histogram of Number of Visibility")
+  title = "Histogram of Visibility")
 ```
 
-
+Histogram of bikes rented across holiday. Shows similar distribution between 2 groups. 
 ```{r}
 g <- ggplot(data = bike, aes(x = bike_count))
 g + geom_histogram(alpha = 0.5, aes( fill = Holiday), bins = 15) +
   labs(x = "Number of Bikes Rented", y = "Count",
   title = "Histogram of Number of Bikes Rented Between Holidays")
 ```
-
+Histogram of bike rentals, filtering for where no rainfall occurred.
 ```{r}
 g <- ggplot(data = bike |>
               filter(rainfall == 0), 
@@ -141,27 +150,30 @@ g + geom_histogram(alpha = 0.5, bins = 15) +
   labs(x = "Number of Bikes Rented", y = "Count",
   title = "Histogram of Number of Bikes Rented On No Rain Days")
 ```
-
+Scatter plot of solar radiations vs number of bike rented
 ```{r}
 g <- ggplot(data = bike, aes(x = solar_radiation, y = bike_count))
 g + geom_jitter() +
   labs(x = "Solar Radiation", y = "Number of Bikes Rented",
-  title = "Number of Bikes Rented v.s Solar Raditation")
+  title = "Solar Raditation v.s. Number of Bikes Rented")
 ```
 
+Scatter plot of wind speed vs bike rented.
 ```{r}
 g <- ggplot(data = bike, aes(x = wind_speed, y = bike_count))
 g + geom_jitter() +
   labs(x = "Wind Speed", y = "Number of Bikes Rented",
-  title = "Number of Bikes Rented v.s Wind Speed")
+  title = "Wind Speed v.s. Number of Bikes Rented")
 ```
+Scatter plot of temperature vs number of bikes rented. Shows that bike rentals peak in the mid 20s (degree celcius).
 ```{r}
 g <- ggplot(data = bike, aes(x = temp, y = bike_count))
 g + geom_jitter() +
   labs(x = "Temperature (C)", y = "Number of Bikes Rented",
-  title = "Number of Bikes Rented v.s Temperature")
+  title = "Temperature (C) v.s. Number of Bikes Rented")
 ```
 
+Histogram of bike rentals grouped by precipitation. As expected bike rentals are lower overall in distribution when there is precipitation compared to when there is no precipitation.
 ```{r}
 g <- ggplot(data = bike, aes(x = bike_count))
 g + geom_histogram(alpha = 0.5, aes( fill = precipitation), bins = 15) +
@@ -177,34 +189,37 @@ g + geom_jitter() +
   title = "Number of Bikes Rented v.s Wind Speed")
 ```
 
+Tried to create an animation for bike rentals across hours where each frame was a date.
+Could not get this to work.
 ```{r}
-library(gapminder)
-library(gganimate)
-library(gifski)
-
-g <- ggplot(bike, aes(x = hour, y = bike_count)) +
-  geom_point(alpha = 0.7, show.legend = FALSE) +
-  #scale_colour_manual(values = Seasons) +
-  scale_size(range = c(2, 12)) +
-  #facet_wrap(~ Seasons) +
-  # Here comes the gganimate specific bits
-  labs(title = 'Date: {frame_time}', x = 'Hour', y = 'Bike Rental Count') +
-  transition_time(date) +
-  enter_fade() + exit_shrink() +
-      ease_aes('sine-in-out')
+# library(gapminder)
+# library(gganimate)
+# library(gifski)
+# 
+# g <- ggplot(bike, aes(x = hour, y = bike_count)) +
+#   geom_point(alpha = 0.7, show.legend = FALSE) +
+#   #scale_colour_manual(values = Seasons) +
+#   scale_size(range = c(2, 12)) +
+#   #facet_wrap(~ Seasons) +
+#   # Here comes the gganimate specific bits
+#   labs(title = 'Date: {frame_time}', x = 'Hour', y = 'Bike Rental Count') +
+#   transition_time(date) +
+#   enter_fade() + exit_shrink() +
+#       ease_aes('sine-in-out')
   #ease_aes('linear')
 ```
 
 ```{r}
-anim <- ggplot(mtcars, aes(mpg, disp)) +
-  geom_point(aes(color = gear)) +
-  transition_states(gear, transition_length = 2, state_length = 1) +
-  enter_fade() +
-  exit_fade()
+# anim <- ggplot(mtcars, aes(mpg, disp)) +
+#   geom_point(aes(color = gear)) +
+#   transition_states(gear, transition_length = 2, state_length = 1) +
+#   enter_fade() +
+#   exit_fade()
 
-animate(anim)
+#animate(anim)
 ```
 
+Correlation matrix of numeric variables
 ```{r}
 # Loading
 library(ggcorrplot)
